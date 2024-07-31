@@ -127,15 +127,24 @@ router.get("/todos", userMiddleware, async (req, res) => {
 });
 
 
-//vulnerability
+//vulnerability ish
 
 router.get("/todos/:id", userMiddleware, async (req, res) => {
-	
 	const todoId = req.params.id;
+
+	//checking if user is authorised to access that todo
+	const user = await User.findOne({
+		username: req.username,
+	});
+
+	if (!user.todos.includes(todoId)) {
+		return res.status(403).json({ message: 'Unauthorised' });
+	}
+
 	const todos = await Todo.findOne({
 		_id: { todoId },
 	});
-	if (todos.length) {
+	if (todos) {
 		res.status(200).json({
 			todos,
 		});
