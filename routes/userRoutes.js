@@ -1,7 +1,7 @@
 import { Router } from "express";
 const router = Router();
 import jwt from "jsonwebtoken";
-import { User } from "../db/index.js";
+import { User, Todo } from "../db/index.js";
 import userMiddleware from "../middleware/userMiddleware.js";
 import dotenv from "dotenv";
 import { createTodo, userName, passWord } from "../types.js";
@@ -13,19 +13,19 @@ router.post("/signup", async (req, res) => {
 	// Implement user signup logic
 	const username = req.body.username;
 	const password = req.body.password;
-	
+
 	const validUsername = userName.safeParse(username);
 	const validpassword = passWord.safeParse(password);
-	
+
 	if (!validUsername.success || !validpassword.success) {
 		res.json({
 			msg: "invalid username or password",
 		});
 		return;
 	}
-	
+
 	const hash = await bcrypt.hash(password, 10);
-	
+
 	const response = await User.findOne({
 		username,
 		password,
@@ -33,7 +33,7 @@ router.post("/signup", async (req, res) => {
 	if (!response) {
 		await User.create({
 			username,
-			password:hash,
+			password: hash,
 		});
 
 		res.status(200).json({
@@ -54,7 +54,7 @@ router.post("/signin", async (req, res) => {
 		username,
 	});
 
-	const isValid = bcrypt.compare(password,response.password)
+	const isValid = bcrypt.compare(password, response.password)
 
 	if (isValid) {
 		const token = jwt.sign(username, process.env.JWT_SECRET);
@@ -84,22 +84,20 @@ router.post("/todo", userMiddleware, async (req, res) => {
 	}
 	//Add todo to DB
 	try {
-		const addedTodos = await User.updateOne(
-			{
-				username,
-			},
-			{
-				$push: {
-					todos: {
-						title: title,
-						description: description,
-					},
-				},
-			}
+		const addedTodo = await Todo.create({
+			title: title,
+			description: description,
+		}
 		);
+		// console.log(addedTodo);
+		await User.updateOne({
+			username,
+		}, {
+			$push: { todos: addedTodo._id, }
+		})
 		res.status(200).json({
 			msg: "Todo added",
-			todos: addedTodos.todos,
+			todos: addedTodo,
 		});
 	} catch (e) {
 		res.json({
@@ -112,7 +110,11 @@ router.get("/todos", userMiddleware, async (req, res) => {
 	const user = await User.findOne({
 		username: req.username,
 	});
-	const todos = user.todos;
+	const todos = await Todo.find({
+		_id: {
+			$in: user.todos,
+		},
+	});
 	if (todos.length) {
 		res.status(200).json({
 			todos,
@@ -129,10 +131,10 @@ router.patch("/completed/:id", async (req, res) => {
 		// Find the user by username and the specific todo by ID
 		// const username = req.username;
 		const todoId = req.params.id;
-		const result = await User.updateOne(
-			{ "todos._id": todoId },
+		const result = await Todo.updateOne(
+			{ "_id": todoId },
 			{
-				$set: { "todos.$.completed": true },
+				$set: { "completed": true },
 			}
 		);
 		// console.log(result);
@@ -147,36 +149,35 @@ router.patch("/completed/:id", async (req, res) => {
 	}
 });
 
-router.patch("/update/:id", async (req, res) => {
+router.patch("/update/:id", userMiddleware, async (req, res) => {
 	try {
-		// Find the user by username and the specific todo by ID
-		// const username = req.username;
 		const title = req.body.title;
 		const description = req.body.description;
 		const todoId = req.params.id;
-		let result;
-		if (title) {
-			result = await User.updateOne(
-				{ "todos._id": todoId },
-				{
-					$set: { "todos.$.title": title },
-				}
-			);
+
+		// console.log(req);
+		//Check if user is authorised to change the certain todo.
+		const user = await User.findOne({
+			username: req.username,
+		});
+		
+		// console.log(user);
+		if (!user.todos.includes(todoId)) {
+			return res.status(403).json({ message: 'Unauthorised' });
 		}
-		if (description) {
-			result = await User.updateOne(
-				{ "todos._id": todoId },
-				{
-					$set: { "todos.$.description": description },
-				}
-			);
+
+		//updating the todo
+		const updatedTodo = await Todo.findByIdAndUpdate(
+			todoId,
+			{ title, description },
+			{ new: true, runValidators: true }
+		);
+
+		if (!updatedTodo) {
+			return res.status(404).json({ message: 'Todo not found.' });
 		}
-		console.log(result);
-		if (result.modifiedCount > 0) {
-			res.status(200).json({ message: "Todo Updated" });
-		} else {
-			res.status(404).json({ message: "Todo not found" });
-		}
+
+		res.status(200).json({ updatedTodo });
 	} catch (error) {
 		console.error("Error updating todo:", error);
 		res.status(500).json({ message: "Internal server error." });
