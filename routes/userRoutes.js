@@ -126,6 +126,26 @@ router.get("/todos", userMiddleware, async (req, res) => {
 	}
 });
 
+
+//vulnerability
+
+router.get("/todos/:id", userMiddleware, async (req, res) => {
+	
+	const todoId = req.params.id;
+	const todos = await Todo.findOne({
+		_id: { todoId },
+	});
+	if (todos.length) {
+		res.status(200).json({
+			todos,
+		});
+	} else {
+		res.status(403).json({
+			msg: "No Todos Added",
+		});
+	}
+});
+
 router.patch("/completed/:id", async (req, res) => {
 	try {
 		// Find the user by username and the specific todo by ID
@@ -160,7 +180,7 @@ router.patch("/update/:id", userMiddleware, async (req, res) => {
 		const user = await User.findOne({
 			username: req.username,
 		});
-		
+
 		// console.log(user);
 		if (!user.todos.includes(todoId)) {
 			return res.status(403).json({ message: 'Unauthorised' });
