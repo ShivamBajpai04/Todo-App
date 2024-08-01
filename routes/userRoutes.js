@@ -102,6 +102,7 @@ router.post("/todo", userMiddleware, async (req, res) => {
 	} catch (e) {
 		res.json({
 			msg: "Could not add todo",
+			err:e
 		});
 	}
 });
@@ -116,9 +117,9 @@ router.get("/todos", userMiddleware, async (req, res) => {
 		},
 	});
 	if (todos.length) {
-		res.status(200).json({
+		res.status(200).json(
 			todos,
-		});
+		);
 	} else {
 		res.status(403).json({
 			msg: "No Todos Added",
@@ -141,13 +142,11 @@ router.get("/todos/:id", userMiddleware, async (req, res) => {
 		return res.status(403).json({ message: 'Unauthorised' });
 	}
 
-	const todos = await Todo.findOne({
-		_id: { todoId },
-	});
+	const todos = await Todo.findById(todoId);
 	if (todos) {
-		res.status(200).json({
+		res.status(200).json(
 			todos,
-		});
+		);
 	} else {
 		res.status(403).json({
 			msg: "No Todos Added",

@@ -6,7 +6,7 @@ dotenv.config();
 const db = mongoose;
 db.connect(process.env.DB_LINK);
 
-const TodoSchema = new mongoose.Schema({
+const TodoSchema = new db.Schema({
 	title: { type: String, required: true, minlength: 10, maxlength: 100 },
 	description: { type: String, minlength: 10, maxlength: 500 },
 	completed: { type: Boolean, default: false },
