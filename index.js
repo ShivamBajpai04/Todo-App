@@ -1,7 +1,9 @@
 import express from "express";
-import { z } from "zod";
 import router from "./routes/userRoutes.js";
-import cors from "cors"
+import cors from "cors";
+import "dotenv/config";
+
+import { connectToDB } from "./db/index.js";
 
 const userRouter = router;
 const app = express();
@@ -12,6 +14,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use("/", userRouter);
 
+connectToDB();
+
 app.listen(port, () => {
-	console.log(`listening on port ${port}`);
+  console.log(`listening on port ${port}`);
 });
