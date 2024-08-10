@@ -11,7 +11,7 @@ const port = 3000;
 
 app.use(cors());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+app.use(express.json());                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 e4          
 app.use("/", userRouter);
 
 connectToDB();
