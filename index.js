@@ -1,21 +1,26 @@
 import express from "express";
-import router from "./routes/userRoutes.js";
-import cors from "cors";
-import "dotenv/config";
-
+import dotenv from "dotenv";
 import { connectToDB } from "./db/index.js";
+import userRoutes from "./routes/userRoutes.js";
+import cors from "cors";
 
-const userRouter = router;
+dotenv.config();
+
 const app = express();
-const port = 3000;
+app.use(express.json());
+const corsOptions = {
+  origin: process.env.CORS_ORIGIN || "*", // Adjust according to your frontend domain or use '*' for all origins
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+  allowedHeaders: "Content-Type, Authorization",
+};
 
-app.use(cors());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 e4          
-app.use("/", userRouter);
+app.use(cors(corsOptions));
+app.use("/", userRoutes);
 
-connectToDB();
+const PORT = process.env.PORT || 3000;
 
-app.listen(port, () => {
-  console.log(`listening on port ${port}`);
+connectToDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
 });
